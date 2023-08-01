@@ -49,16 +49,16 @@ scopeNetLife {
 }
 ```
 
-> 无论是上传还是下载的进度监听不仅仅是泛型为File对象才有效, 任何请求/响应都会被监听到进度
+> 不仅是泛型为File才有效, 任何请求/响应都可以监听进度
 
 
 ## 监听器
 
-通过继承`ProgressListener`抽象类实现监听进度信息. 进度信息为`Progress`对象
+实现`ProgressListener`监听进度信息. 进度信息为`Progress`
 
 ### 进度间隔时间
 
-ProgressListener的构造参数`interval`控制触发进度监听器的间隔时间, 默认是500毫秒. 毕竟进度监听不需要太频繁的调用影响性能.
+ProgressListener的构造参数`interval`控制触发进度监听器的间隔时间
 
 ### 进度信息
 
@@ -75,7 +75,7 @@ ProgressListener的构造参数`interval`控制触发进度监听器的间隔时
 | useTimeSeconds | 已经使用时间, 单位秒 |
 | remainTimeSeconds | 估算的剩余时间, 单位秒 |
 
-同时提供了一系列字符串格式函数, 都是返回已经添加好单位
+### 格式化字符串
 
 | 函数 | 描述 |
 |-|-|

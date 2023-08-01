@@ -29,55 +29,51 @@
 
 > 转换器中发生的所有异常除非是NetException的子类否则都将被ConvertException包裹(即捕获的是ConvertException, cause才为实际抛出异常).
 
-## 使用异常属性
+## 异常传递字段
 
-Net自带的一些异常都会有一个类型为Any的属性`tag`. 可以用来传递任何对象来用于判断错误类型. 比如`ResponseException`我常用于作为请求服务器成功但是服务器业务错误. 然后tag为业务错误码
+Net自带异常会有类型为Any的字段`tag`, 可用传递对象用于判断错误处理
+
+例如`ResponseException`常用于作为请求服务器成功但后端业务错误, 然后tag为传递的错误码
 
 示例代码
 
-在转换器中获取401
+=== "转换器抛出异常"
 
-```kotlin
-class SerializationConverter(
-    val success: String = "0",
-    val code: String = "code",
-    val message: String = "msg"
-) : NetConverter {
+    ```kotlin
+    class SerializationConverter(
+        val success: String = "0",
+        val code: String = "code",
+        val message: String = "msg"
+    ) : NetConverter {
 
-    override fun <R> onConvert(succeed: Type, response: Response): R? {
-        try {
-            return NetConverter.onConvert<R>(succeed, response)
-        } catch (e: ConvertException) {
-            val code = response.code
-            when {
-                code in 200..299 -> { // 请求成功
-                // ... 假设Token失效. 后端返回业务错误码 srvCode = 401
-                    throw ResponseException(response, errorMessage, tag = srvCode) // 将业务错误码作为tag传递
+        override fun <R> onConvert(succeed: Type, response: Response): R? {
+            try {
+                return NetConverter.onConvert<R>(succeed, response)
+            } catch (e: ConvertException) {
+                val code = response.code
+                when {
+                    code in 200..299 -> { // 请求成功
+                    // ... 假设Token失效. 后端返回业务错误码 srvCode = 401
+                        throw ResponseException(response, errorMessage, tag = srvCode) // 将业务错误码作为tag传递
+                    }
+                    code in 400..499 -> throw RequestParamsException(response, code.toString()) // 请求参数错误
+                    code >= 500 -> throw ServerResponseException(response, code.toString()) // 服务器异常错误
+                    else -> throw ConvertException(response)
                 }
-                code in 400..499 -> throw RequestParamsException(response, code.toString()) // 请求参数错误
-                code >= 500 -> throw ServerResponseException(response, code.toString()) // 服务器异常错误
-                else -> throw ConvertException(response)
             }
         }
     }
-}
-```
+    ```
 
-全局错误处理器
+=== "全局错误处理异常"
 
-```kotlin
-// 创建错误处理器
-MyErrorHandler : NetErrorHandler {
-    override fun onError(e: Throwable) {
-    // .... 其他错误
-        if (e is ResponseException && e.tag == 401) { // 判断异常为token失效
-           // 打开登录界面或者弹登录失效对话框
+    ```kotlin
+    class NetworkingErrorHandler : NetErrorHandler {
+        override fun onError(e: Throwable) {
+        // .... 其他错误
+            if (e is ResponseException && e.tag == 401) { // 判断异常为token失效
+               // 打开登录界面或者弹登录失效对话框
+            }
         }
     }
-}
-
-// 初始化Net的时候设置错误处理器
-NetConfig.initialize("host", this) {
-    setErrorHandler(MyErrorHandler()
-}
-```
+    ```
